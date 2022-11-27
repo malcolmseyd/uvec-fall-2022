@@ -3,3 +3,5 @@ interface BoardState {
     hline: number[][];
     claimed: number[][];
 }
+
+export default BoardState;

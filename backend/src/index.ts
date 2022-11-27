@@ -1,22 +1,19 @@
 import express from "express";
-import fetch from "node-fetch";
 import ws from "ws";
 import Game from "./game";
 import Message from "./message";
+import AIMode from "./ai-mode";
+import BoardState from "./board-state";
+import AIPlayer from "./ai-player";
 const app = express();
 const port = 3000;
 
 // define a route handler for the default home page
 app.get( "/", ( req, res ) => {
-    res.send( "Hello world! 123" );
+    res.send( "Hello world! 456" );
 } );
 
 let games: Array<Game> = [];
-
-function getNextMoveAI(): Message {
-    let res = fetch("https://mnthomson.gh.srv.us/move");
-    return null;
-}
 
 const wsServer = new ws.Server({ 
     noServer: true,
@@ -24,7 +21,7 @@ const wsServer = new ws.Server({
 });
 
 wsServer.on('connection', socket => {
-    socket.on('message', message => {
+    socket.on('message', async message => {
         let msg: Message;
         try {
             msg = JSON.parse(message.toString());
@@ -34,6 +31,23 @@ wsServer.on('connection', socket => {
             return;
         }
         console.log(msg);
+
+        if (msg.type == "testRandom") {
+            let ai: AIPlayer = new AIPlayer();
+            ai.aiMode = AIMode.RANDOM;
+            let boardState: BoardState = {
+                vline: [[0,2,1],[0,0,0],[1,2,0]],
+                hline: [[0,2,1],[0,0,0],[1,2,0]],
+                claimed: [[0,0,0],[0,0,0],[0,0,0]]
+            }
+            // let game: Game = {
+            //     players: [ socket, ai ],
+            //     boardState,
+            //     aiMode: ai.aiMode,
+            // }
+            let res = await ai.getMove(boardState)
+            console.log(res);
+        }
 
         games.forEach(g => {
             if (g.players[0] == socket) {

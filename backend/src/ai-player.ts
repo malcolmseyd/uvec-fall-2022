@@ -1,7 +1,7 @@
-import fetch from "node-fetch";
-
+import AIMode from "./ai-mode";
+import BoardState from "./board-state";
 const modeToUrl: Record<any, any> = {
-    "AIMode.RANDOM": "https://mnthomson.gh.srv.us/move"
+    "random": "https://mnthomson.gh.srv.us/move",
 }
 
 class AIPlayer {
@@ -13,8 +13,8 @@ class AIPlayer {
             body: JSON.stringify(boardState),
             headers: { 'Content-Type': 'application/json' },
         });
-        console.log(res);
-        return res;
+        // console.log(res);
+        return await res.text();
     }
 }
 

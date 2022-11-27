@@ -1,5 +1,7 @@
 enum AIMode {
-    NONE,
-    RANDOM,
-    RUST,
+    NONE = 'none',
+    RANDOM = 'random',
+    RUST = 'rust',
 }
+
+export default AIMode;
