@@ -1,6 +1,6 @@
 interface Message {
   type: string;
-  location?: string[];
+  location?: number[];
 }
 
 export default Message;
