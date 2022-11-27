@@ -7,4 +7,5 @@ export type MoveMessage = {
 
 export type PlayAgainMessage = {
   type: "playAgain";
+  size: [number, number];
 };

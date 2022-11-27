@@ -5,6 +5,7 @@ import { Message, MoveMessage, PlayAgainMessage } from "./message";
 import AIMode from "./ai-mode";
 import BoardState from "./board-state";
 import AIPlayer from "./ai-player";
+import { triggerAsyncId } from "async_hooks";
 const app = express();
 const port = 3001;
 function blank(x: number, y: number) {
@@ -48,40 +49,73 @@ function validate(
   return false;
 }
 
-function applyMove(boardState: BoardState, move: MoveMessage, player: number) {
+function applyMove(boardState: BoardState, move: MoveMessage, player: number): boolean{
   const [y, x] = move.location;
+
+  let [left, right, upper, lower] = [0, 0, 0, 0];
   switch (move.type) {
     case "v":
-      // update board state, send move to other client
+      // update board state
       boardState.vline[y][x] = player;
 
       const maxX = boardState.vline[0].length - 1;
       const minX = 0;
 
-      let hasParallel: "up" | "down" = "up";
+      left = 0;
       if (x > minX && boardState.vline[y][x - 1] != 0) {
-        hasParallel = "up";
+        // parallel is to the left
+        left = x - 1;
       } else if (x < maxX && boardState.vline[y][x + 1] != 0) {
-        hasParallel = "down";
+        // parallel is to the right
+        left = x;
       } else {
+        // no parallel, not a square
         break;
       }
 
-      if (hasParallel == "up") {
-        // we know x and x-1 are claimed
-        // check x-1,y and x-1,y+1
-        if (boardState[vlin])
-      } else {
-        // we know x and x+1 are claimed
+      // we have left and right bounds
+      // check upper and lower
+      upper = boardState.hline[y][left];
+      lower = boardState.hline[y + 1][left];
 
+      if (upper != 0 && lower != 0) {
+        // just claimed a square!
+        boardState.claimed[y][left] = player;
+        console.log(player, "claimed", y, left, boardState.claimed);
       }
-
-      break;
+      return true;
 
     case "h":
-      // update board state, send move to other client
+      // block scope
+      // update board state
       boardState.hline[y][x] = player;
-      break;
+
+      const maxY = boardState.vline.length - 1;
+      const minY = 0;
+
+      upper = 0;
+      if (y > minY && boardState.vline[y - 1][x] != 0) {
+        // parallel is to the top
+        upper = y - 1;
+      } else if (y < maxY && boardState.vline[y + 1][x] != 0) {
+        // parallel is to the bottom
+        upper = y;
+      } else {
+        // no parallel, not a square
+        break;
+      }
+
+      // we have upper and lower bounds
+      // check left and rigth 
+      left = boardState.hline[upper][x];
+      right = boardState.hline[upper][x + 1];
+
+      if (left != 0 && right != 0) {
+        // just claimed a square!
+        boardState.claimed[upper][x] = player;
+        console.log(player, "claimed", upper, x, boardState.claimed);
+      }
+      true
     default:
       throw Error;
   }
