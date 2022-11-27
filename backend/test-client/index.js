@@ -1,12 +1,12 @@
-const ws = require('ws');
+const ws = require("ws");
 
-const client = new ws('ws://localhost:3000/connect');
+const client = new ws("ws://localhost:3000/connect");
 
-client.on('open', () => {
+client.on("open", () => {
   // Causes the server to print "Hello"
   let msg = {
     type: "testRandom",
-  }
+  };
   client.send(JSON.stringify(msg));
   client.close();
 });

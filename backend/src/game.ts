@@ -4,9 +4,9 @@ import AIPlayer from "./ai-player";
 import AIMode from "./ai-mode";
 
 interface Game {
-    players: Array<WebSocket | AIPlayer>;
-    boardState: BoardState;
-    aiMode?: AIMode;
+  players: Array<WebSocket | AIPlayer>;
+  boardState: BoardState;
+  aiMode?: AIMode;
 }
 
 export default Game;
