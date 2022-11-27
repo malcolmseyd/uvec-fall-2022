@@ -5,13 +5,16 @@ const port = 3000;
 
 // define a route handler for the default home page
 app.get( "/", ( req, res ) => {
-    res.send( "Hello world!" );
+    res.send( "Hello world! 123" );
 } );
 
-const wsServer = new ws.Server({ noServer: true });
+const wsServer = new ws.Server({ 
+    noServer: true,
+    path: "/connect" 
+});
 wsServer.on('connection', socket => {
     socket.on('message', message => {
-        console.log(message);
+        console.log(JSON.parse(message.toString()));
     })
 })
 
