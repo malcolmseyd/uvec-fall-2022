@@ -5,7 +5,6 @@ import { Message, MoveMessage, PlayAgainMessage } from "./message";
 import AIMode from "./ai-mode";
 import BoardState from "./board-state";
 import AIPlayer from "./ai-player";
-import { syncBuiltinESMExports } from "module";
 const app = express();
 const port = 3001;
 function blank(x: number, y: number) {
@@ -68,14 +67,14 @@ function applyMove(boardState: BoardState, move: MoveMessage, player: number) {
         break;
       }
 
-      // if (hasParallel == "up") {
-      //   // we know x and x-1 are claimed
-      //   // check x-1,y and x-1,y+1
-      //   if (boardState[vlin])
-      // } else {
-      //   // we know x and x+1 are claimed
+      if (hasParallel == "up") {
+        // we know x and x-1 are claimed
+        // check x-1,y and x-1,y+1
+        if (boardState[vlin])
+      } else {
+        // we know x and x+1 are claimed
 
-      // }
+      }
 
       break;
 
