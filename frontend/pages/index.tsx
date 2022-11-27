@@ -1,5 +1,9 @@
 import { type } from "os";
 import { useEffect, useState } from "react";
+import getConfig from "next/config";
+
+const { serverRuntimeConfig, publicRuntimeConfig } = getConfig();
+const API_URL = publicRuntimeConfig.API_URL;
 
 function arr<T>(cols: number, init: (col: number) => T): T[] {
   return Array.from({ length: cols }, (_, col) => init(col));
@@ -33,7 +37,7 @@ function coordsToLine(col: number, row: number): LineLocation {
 }
 
 type CellProps = { col: number; row: number } & State;
-function Cell({ col, row, vline, hline, ws }: CellProps) {
+function Cell({ col, row, vline, hline, ws, claimed }: CellProps) {
   const type =
     col % 2 == 0 && row % 2 == 0
       ? "dot"
@@ -41,13 +45,14 @@ function Cell({ col, row, vline, hline, ws }: CellProps) {
       ? "line"
       : "square";
 
+  const dir = col % 2 == 0 ? 'vert' : 'hori';
   // const owner: number = 0;
   // console.log({ col, row });
   const {
     type: lineDir,
     location: [lineY, lineX],
   } = coordsToLine(col, row);
-  const owner =
+  let owner =
     type != "line"
       ? 0
       : lineDir == "h"
@@ -57,28 +62,27 @@ function Cell({ col, row, vline, hline, ws }: CellProps) {
   const width = col % 2 == 0 ? DOT_SIZE : LINE_SIZE;
   const height = row % 2 == 0 ? DOT_SIZE : LINE_SIZE;
 
-  const [hover, setHover] = useState(false);
+  if (type == "square") {
+    const claimedX = (col-1)/2;
+    const claimedY = (row-1)/2;
+    // do shit
+    owner = claimed[claimedY][claimedX];
+  }
 
   const color =
     owner == 1
       ? "red"
       : owner == 2
       ? "blue"
-      : type == "dot"
-      ? "black"
-      : type == "line" && hover
-      ? "lightgrey"
       : "white";
 
   return (
     <td
       key={[row, col].toString()}
+      className={type + " " + color + " " + dir}
       style={{
         border: "0px black solid",
-        backgroundColor: color,
       }}
-      onMouseOver={() => setHover(true)}
-      onMouseOut={() => setHover(false)}
       onClick={() => {
         if (type != "line" || ws == undefined || ws.readyState != ws.OPEN)
           return;
@@ -89,7 +93,6 @@ function Cell({ col, row, vline, hline, ws }: CellProps) {
         ws.send(data);
       }}
     >
-      <img src="./s.gif" height={height} width={width}></img>
     </td>
   );
 }
@@ -151,11 +154,14 @@ type State = GameState & {
 export default function Home() {
   const [state, setState] = useState<State | undefined>(undefined);
   useEffect(() => {
-    const ws = new WebSocket("wss://4o7ebjyojxb5g47gtxvbbkqnt4.srv.us/connect");
+    const ws = new WebSocket("wss://" + API_URL + "/connect");
 
     ws.addEventListener("open", (e) => {
       console.log("connected!");
-      ws.send(JSON.stringify({ type: "playAgain" }));
+      ws.send(JSON.stringify({ 
+        type: "playAgain",
+        size: [5, 10],
+      }));
       // ws.send(JSON.stringify({ type: "testRandom" }));
     });
     ws.addEventListener("message", (e) => {
@@ -165,7 +171,7 @@ export default function Home() {
     });
   }, []);
   return (
-    <div>
+    <div className="body">
       <h1>Dots and Boxes</h1>
       {state == undefined ? <p>Connecting...</p> : <Grid {...state} />}
     </div>
