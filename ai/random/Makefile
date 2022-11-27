@@ -12,7 +12,7 @@ post:
 	cat test.json | http POST localhost:8000/move
 
 dockerbuild:
-	docker build -t doxes/ai/random:latest .
+	docker build -t bad/ai/random:latest .
 
 dockerrun:
-	docker run doxes/ai/random:latest
+	docker run -p 8000:8000 bad/ai/random:latest

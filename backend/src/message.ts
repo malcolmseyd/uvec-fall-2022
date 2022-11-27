@@ -1,6 +1,11 @@
-interface Message {
-  type: string;
-  location?: number[];
-}
+export type Message = MoveMessage | PlayAgainMessage;
 
-export default Message;
+export type MoveMessage = {
+  type: "v" | "h";
+  location: [number, number];
+};
+
+export type PlayAgainMessage = {
+  type: "playAgain";
+  size: [number, number];
+};

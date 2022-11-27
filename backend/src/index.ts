@@ -1,33 +1,25 @@
 import express from "express";
 import ws, { createWebSocketStream } from "ws";
 import Game from "./game";
-import Message from "./message";
+import { Message, MoveMessage, PlayAgainMessage } from "./message";
 import AIMode from "./ai-mode";
 import BoardState from "./board-state";
 import AIPlayer from "./ai-player";
+import { triggerAsyncId } from "async_hooks";
 const app = express();
-const port = 3000;
-function blankBoardState(): BoardState {
-    return {
-        vline: [
-            [0, 0, 0, 0],
-            [0, 0, 0, 0],
-            [0, 0, 0, 0],
-        ],
-        hline: [
-            [0, 0, 0],
-            [0, 0, 0],
-            [0, 0, 0],
-            [0, 0, 0],
-        ],
-        claimed: [
-        [0, 0, 0],
-        [0, 0, 0],
-        [0, 0, 0],
-        ],
-        state: 'p1',
-    }
+const port = 3001;
+function blank(x: number, y: number) {
+  return Array.from({ length: x }, () => Array.from({ length: y }, () => 0));
+}
+
+function blankBoardState(x: number, y: number): BoardState {
+  return {
+    vline: blank(y - 1, x),
+    hline: blank(y, x - 1),
+    claimed: blank(y - 1, x - 1),
+    state: "p1",
   };
+}
 
 // define a route handler for the default home page
 app.get("/", (req, res) => {
@@ -36,36 +28,97 @@ app.get("/", (req, res) => {
 
 let games: Array<Game> = [];
 
-function validate(boardState: BoardState, move: Message, player: string): boolean {
-    if(boardState.state === player) {
-        switch(move.type) {
-            case "v":
-                if (boardState.vline[move.location[0]][move.location[1]] == 0) {
-                    return true;
-                }
-                break;
-            case "h":
-                if (boardState.hline[move.location[0]][move.location[1]] == 0) {
-                    return true;
-                }
+function validate(
+  boardState: BoardState,
+  move: MoveMessage,
+  player: string
+): boolean {
+  if (boardState.state === player) {
+    switch (move.type) {
+      case "v":
+        if (boardState.vline[move.location[0]][move.location[1]] == 0) {
+          return true;
+        }
+        break;
+      case "h":
+        if (boardState.hline[move.location[0]][move.location[1]] == 0) {
+          return true;
         }
     }
-    return false;
+  }
+  return false;
 }
 
-function applyMove(boardState: BoardState, move: Message, player: number) {
-    switch(move.type) {
-        case "v":
-            // update board state, send move to other client
-            boardState.vline[move.location[0]][move.location[1]] = player;
-            break;
-        case "h":
-            // update board state, send move to other client
-            boardState.hline[move.location[0]][move.location[1]] = player;
-            break;
-        default:
-            throw Error;
-    }
+function applyMove(boardState: BoardState, move: MoveMessage, player: number): boolean{
+  const [y, x] = move.location;
+
+  let [left, right, upper, lower] = [0, 0, 0, 0];
+  switch (move.type) {
+    case "v":
+      // update board state
+      boardState.vline[y][x] = player;
+
+      const maxX = boardState.vline[0].length - 1;
+      const minX = 0;
+
+      left = 0;
+      if (x > minX && boardState.vline[y][x - 1] != 0) {
+        // parallel is to the left
+        left = x - 1;
+      } else if (x < maxX && boardState.vline[y][x + 1] != 0) {
+        // parallel is to the right
+        left = x;
+      } else {
+        // no parallel, not a square
+        break;
+      }
+
+      // we have left and right bounds
+      // check upper and lower
+      upper = boardState.hline[y][left];
+      lower = boardState.hline[y + 1][left];
+
+      if (upper != 0 && lower != 0) {
+        // just claimed a square!
+        boardState.claimed[y][left] = player;
+        console.log(player, "claimed", y, left, boardState.claimed);
+      }
+      return true;
+
+    case "h":
+      // block scope
+      // update board state
+      boardState.hline[y][x] = player;
+
+      const maxY = boardState.vline.length - 1;
+      const minY = 0;
+
+      upper = 0;
+      if (y > minY && boardState.vline[y - 1][x] != 0) {
+        // parallel is to the top
+        upper = y - 1;
+      } else if (y < maxY && boardState.vline[y + 1][x] != 0) {
+        // parallel is to the bottom
+        upper = y;
+      } else {
+        // no parallel, not a square
+        break;
+      }
+
+      // we have upper and lower bounds
+      // check left and rigth 
+      left = boardState.hline[upper][x];
+      right = boardState.hline[upper][x + 1];
+
+      if (left != 0 && right != 0) {
+        // just claimed a square!
+        boardState.claimed[upper][x] = player;
+        console.log(player, "claimed", upper, x, boardState.claimed);
+      }
+      true
+    default:
+      throw Error;
+  }
 }
 
 const wsServer = new ws.Server({
@@ -94,18 +147,18 @@ wsServer.on("connection", (socket) => {
           case "playAgain":
             // send blank board state
             console.log("received playagain from same socket");
-            g.boardState = blankBoardState();
+            g.boardState = blankBoardState(4, 4);
             break;
           case "v":
             // update board state, send move to other client
-            if(validate(g.boardState, msg, "p1")) {
-                applyMove(g.boardState, msg, 1);
+            if (validate(g.boardState, msg, "p1")) {
+              applyMove(g.boardState, msg, 1);
             }
             break;
           case "h":
             // update board state, send move to other client
-            if(validate(g.boardState, msg, "p1")) {
-                applyMove(g.boardState, msg, 1);
+            if (validate(g.boardState, msg, "p1")) {
+              applyMove(g.boardState, msg, 1);
             }
             break;
         }
@@ -115,10 +168,10 @@ wsServer.on("connection", (socket) => {
 
         let p2 = g.players[1];
         if (p2.type === "ai") {
-            let ai: AIPlayer = p2.conn;
-            let response = await ai.getMove(g.boardState);
-            let result: Message = JSON.parse(response);
-            applyMove(g.boardState, result, 2);
+          let ai: AIPlayer = p2.conn;
+          let response = await ai.getMove(g.boardState);
+          let result: MoveMessage = JSON.parse(response);
+          applyMove(g.boardState, result, 2);
         }
 
         g.boardState.state = "p1";
@@ -127,25 +180,25 @@ wsServer.on("connection", (socket) => {
       }
     });
 
-    if(msg.type == "playAgain" && !connExists) {
-        let ai: AIPlayer = new AIPlayer();
-        ai.aiMode = AIMode.RANDOM;
-        let game: Game = {
-            players: [
-                {
-                    type: "player",
-                    conn: socket
-                }, 
-                {
-                    type: "ai",
-                    conn: ai,   
-                }
-            ],
-            boardState: blankBoardState(),
-        }
-        games.push(game);
-        socket.send(JSON.stringify(blankBoardState()));
-        return;
+    if (msg.type == "playAgain" && !connExists) {
+      let ai: AIPlayer = new AIPlayer();
+      ai.aiMode = AIMode.RANDOM;
+      let game: Game = {
+        players: [
+          {
+            type: "player",
+            conn: socket,
+          },
+          {
+            type: "ai",
+            conn: ai,
+          },
+        ],
+        boardState: blankBoardState(4, 4),
+      };
+      games.push(game);
+      socket.send(JSON.stringify(blankBoardState(4, 4)));
+      return;
     }
   });
 });
@@ -157,3 +210,4 @@ server.on("upgrade", (request, socket, head) => {
     wsServer.emit("connection", socket, request);
   });
 });
+console.log("SERVER IS UP");

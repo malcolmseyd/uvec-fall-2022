@@ -89,7 +89,7 @@ function Cell({ col, row, vline, hline, ws, claimed }: CellProps) {
         const move = coordsToLine(col, row);
         console.log("sending message", move);
         const data = JSON.stringify(move);
-        console.log("ws", ws);
+        console.log("ws", ws)
         ws.send(data);
       }}
     >
@@ -121,12 +121,13 @@ function Grid(props: GridProps) {
 }
 
 type GameState = {
+
   vline: number[][];
   hline: number[][];
   claimed: number[][];
   state: "unstarted" | "p1" | "p2" | "over";
   error?: string;
-};
+}
 
 type State = GameState & {
   ws: WebSocket;
@@ -154,7 +155,8 @@ type State = GameState & {
 export default function Home() {
   const [state, setState] = useState<State | undefined>(undefined);
   useEffect(() => {
-    const ws = new WebSocket("wss://" + API_URL + "/connect");
+    const url = `wss://${API_URL}/connect`
+    const ws = new WebSocket(url);
 
     ws.addEventListener("open", (e) => {
       console.log("connected!");
@@ -167,7 +169,7 @@ export default function Home() {
     ws.addEventListener("message", (e) => {
       console.log(e.data);
       const newState = JSON.parse(e.data);
-      setState({ ...newState, ws });
+      setState({...newState, ws});
     });
   }, []);
   return (
