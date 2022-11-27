@@ -1,3 +1,4 @@
+import { type } from "os";
 import { useEffect, useState } from "react";
 
 function arr<T>(cols: number, init: (col: number) => T): T[] {
@@ -15,8 +16,24 @@ function matrix<T>(
 const DOT_SIZE = 20;
 const LINE_SIZE = 100;
 
-type CellProps = { col: number; row: number } & GridProps;
-function Cell({ col, row, vline, hline }: CellProps) {
+type LineLocation = {
+  type: "h" | "v";
+  location: [number, number];
+};
+function coordsToLine(col: number, row: number): LineLocation {
+  return row % 2 == 0 && col % 2 == 1
+    ? {
+        type: "h",
+        location: [Math.floor(row / 2), Math.floor((col - 1) / 2)],
+      }
+    : {
+        type: "v",
+        location: [Math.floor((row - 1) / 2), Math.floor(col / 2)],
+      };
+}
+
+type CellProps = { col: number; row: number } & State;
+function Cell({ col, row, vline, hline, ws }: CellProps) {
   const type =
     col % 2 == 0 && row % 2 == 0
       ? "dot"
@@ -26,12 +43,16 @@ function Cell({ col, row, vline, hline }: CellProps) {
 
   // const owner: number = 0;
   // console.log({ col, row });
+  const {
+    type: lineDir,
+    location: [lineY, lineX],
+  } = coordsToLine(col, row);
   const owner =
     type != "line"
       ? 0
-      : row % 2 == 0 && col % 2 == 1
-      ? hline[Math.floor(row / 2)][Math.floor((col - 1) / 2)]
-      : vline[Math.floor((row - 1) / 2)][Math.floor(col / 2)];
+      : lineDir == "h"
+      ? hline[lineY][lineX]
+      : vline[lineY][lineX];
 
   const width = col % 2 == 0 ? DOT_SIZE : LINE_SIZE;
   const height = row % 2 == 0 ? DOT_SIZE : LINE_SIZE;
@@ -51,12 +72,22 @@ function Cell({ col, row, vline, hline }: CellProps) {
 
   return (
     <td
+      key={[row, col].toString()}
       style={{
         border: "0px black solid",
         backgroundColor: color,
       }}
       onMouseOver={() => setHover(true)}
       onMouseOut={() => setHover(false)}
+      onClick={() => {
+        if (type != "line" || ws == undefined || ws.readyState != ws.OPEN)
+          return;
+        const move = coordsToLine(col, row);
+        console.log("sending message", move);
+        const data = JSON.stringify(move);
+        console.log("ws", ws);
+        ws.send(data);
+      }}
     >
       <img src="./s.gif" height={height} width={width}></img>
     </td>
@@ -86,12 +117,16 @@ function Grid(props: GridProps) {
   );
 }
 
-type State = {
+type GameState = {
   vline: number[][];
   hline: number[][];
   claimed: number[][];
   state: "unstarted" | "p1" | "p2" | "over";
   error?: string;
+};
+
+type State = GameState & {
+  ws: WebSocket;
 };
 
 // const testState: State = {
@@ -111,21 +146,22 @@ type State = {
 //   error: undefined,
 // };
 
+// let ws: undefined | WebSocket = undefined;
+
 export default function Home() {
-  // const hLine: number[][] = matrix(N, N - 1, () => 0);
-  // const vLine: number[][] = matrix(N - 1, N, () => 0);
   const [state, setState] = useState<State | undefined>(undefined);
   useEffect(() => {
     const ws = new WebSocket("wss://4o7ebjyojxb5g47gtxvbbkqnt4.srv.us/connect");
+
     ws.addEventListener("open", (e) => {
       console.log("connected!");
-      // ws.send(JSON.stringify({ type: "playAgain" }));
-      ws.send(JSON.stringify({"type": "testRandom"}))
+      ws.send(JSON.stringify({ type: "playAgain" }));
+      // ws.send(JSON.stringify({ type: "testRandom" }));
     });
     ws.addEventListener("message", (e) => {
       console.log(e.data);
       const newState = JSON.parse(e.data);
-      setState(newState);
+      setState({ ...newState, ws });
     });
   }, []);
   return (
