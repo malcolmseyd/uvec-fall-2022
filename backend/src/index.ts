@@ -49,7 +49,12 @@ function validate(
   return false;
 }
 
-function applyMove(boardState: BoardState, move: MoveMessage, player: number): boolean{
+function applyMove(
+  boardState: BoardState,
+  move: MoveMessage,
+  player: number
+): boolean {
+  let gotSquare = false;
   const [y, x] = move.location;
 
   let [left, right, upper, lower] = [0, 0, 0, 0];
@@ -65,25 +70,36 @@ function applyMove(boardState: BoardState, move: MoveMessage, player: number): b
       if (x > minX && boardState.vline[y][x - 1] != 0) {
         // parallel is to the left
         left = x - 1;
-      } else if (x < maxX && boardState.vline[y][x + 1] != 0) {
+
+        // we have left and right bounds
+        // check upper and lower
+        upper = boardState.hline[y][left];
+        lower = boardState.hline[y + 1][left];
+
+        if (upper != 0 && lower != 0) {
+          // just claimed a square!
+          boardState.claimed[y][left] = player;
+          console.log(player, "claimed", y, left, boardState.claimed);
+          gotSquare = true;
+        }
+      }
+      if (x < maxX && boardState.vline[y][x + 1] != 0) {
         // parallel is to the right
         left = x;
-      } else {
-        // no parallel, not a square
-        break;
-      }
 
-      // we have left and right bounds
-      // check upper and lower
-      upper = boardState.hline[y][left];
-      lower = boardState.hline[y + 1][left];
+        // we have left and right bounds
+        // check upper and lower
+        upper = boardState.hline[y][left];
+        lower = boardState.hline[y + 1][left];
 
-      if (upper != 0 && lower != 0) {
-        // just claimed a square!
-        boardState.claimed[y][left] = player;
-        console.log(player, "claimed", y, left, boardState.claimed);
+        if (upper != 0 && lower != 0) {
+          // just claimed a square!
+          boardState.claimed[y][left] = player;
+          console.log(player, "claimed", y, left, boardState.claimed);
+          gotSquare = true;
+        }
       }
-      return true;
+      break;
 
     case "h":
       // block scope
@@ -97,28 +113,49 @@ function applyMove(boardState: BoardState, move: MoveMessage, player: number): b
       if (y > minY && boardState.vline[y - 1][x] != 0) {
         // parallel is to the top
         upper = y - 1;
-      } else if (y < maxY && boardState.vline[y + 1][x] != 0) {
+
+        // we have upper and lower bounds
+        // check left and rigth
+        left = boardState.vline[upper][x];
+        right = boardState.vline[upper][x + 1];
+
+        if (left != 0 && right != 0) {
+          // just claimed a square!
+          boardState.claimed[upper][x] = player;
+          console.log(player, "claimed", upper, x, boardState.claimed);
+          gotSquare = true;
+        }
+      }
+      if (y < maxY && boardState.vline[y + 1][x] != 0) {
         // parallel is to the bottom
         upper = y;
-      } else {
-        // no parallel, not a square
-        break;
-      }
 
-      // we have upper and lower bounds
-      // check left and rigth 
-      left = boardState.hline[upper][x];
-      right = boardState.hline[upper][x + 1];
+        // we have upper and lower bounds
+        // check left and rigth
+        left = boardState.vline[upper][x];
+        right = boardState.vline[upper][x + 1];
 
-      if (left != 0 && right != 0) {
-        // just claimed a square!
-        boardState.claimed[upper][x] = player;
-        console.log(player, "claimed", upper, x, boardState.claimed);
+        if (left != 0 && right != 0) {
+          // just claimed a square!
+          boardState.claimed[upper][x] = player;
+          console.log(player, "claimed", upper, x, boardState.claimed);
+          gotSquare = true;
+        }
       }
-      true
-    default:
-      throw Error;
+      break;
   }
+  if (gotSquare) {
+    let unclaimed = false;
+    for (let i = 0; i < boardState.claimed.length; i++) {
+      for (let j = 0; j < boardState.claimed[i].length; j++) {
+        if (boardState.claimed[i][j] == 0) {
+          unclaimed = true;
+        }
+      }
+    }
+    if (!unclaimed) [(boardState.state = "over")];
+  }
+  return gotSquare;
 }
 
 const wsServer = new ws.Server({
@@ -128,77 +165,103 @@ const wsServer = new ws.Server({
 
 wsServer.on("connection", (socket) => {
   socket.on("message", async (message) => {
-    let msg: Message;
     try {
-      msg = JSON.parse(message.toString());
-    } catch (e) {
-      console.log("unparsable message: \n" + message.toString());
-      console.log("error: \n" + e);
-      return;
-    }
-    console.log(msg);
-
-    let connExists = false;
-    games.forEach(async (g) => {
-      if (g.players[0].conn == socket) {
-        connExists = true;
-        // game already started, calculate next move
-        switch (msg.type) {
-          case "playAgain":
-            // send blank board state
-            console.log("received playagain from same socket");
-            g.boardState = blankBoardState(4, 4);
-            break;
-          case "v":
-            // update board state, send move to other client
-            if (validate(g.boardState, msg, "p1")) {
-              applyMove(g.boardState, msg, 1);
-            }
-            break;
-          case "h":
-            // update board state, send move to other client
-            if (validate(g.boardState, msg, "p1")) {
-              applyMove(g.boardState, msg, 1);
-            }
-            break;
-        }
-
-        g.boardState.state = "p2";
-        socket.send(JSON.stringify(g.boardState));
-
-        let p2 = g.players[1];
-        if (p2.type === "ai") {
-          let ai: AIPlayer = p2.conn;
-          let response = await ai.getMove(g.boardState);
-          let result: MoveMessage = JSON.parse(response);
-          applyMove(g.boardState, result, 2);
-        }
-
-        g.boardState.state = "p1";
-        socket.send(JSON.stringify(g.boardState));
+      let msg: Message;
+      try {
+        msg = JSON.parse(message.toString());
+      } catch (e) {
+        console.log("unparsable message: \n" + message.toString());
+        console.log("error: \n" + e);
         return;
       }
-    });
+      console.log("player", msg);
 
-    if (msg.type == "playAgain" && !connExists) {
-      let ai: AIPlayer = new AIPlayer();
-      ai.aiMode = AIMode.RANDOM;
-      let game: Game = {
-        players: [
-          {
-            type: "player",
-            conn: socket,
-          },
-          {
-            type: "ai",
-            conn: ai,
-          },
-        ],
-        boardState: blankBoardState(4, 4),
-      };
-      games.push(game);
-      socket.send(JSON.stringify(blankBoardState(4, 4)));
-      return;
+      let connExists = false;
+      games.forEach(async (g) => {
+        try {
+          if (g.players[0].conn == socket) {
+            if (g.boardState.state == "over") return; // don't play if game over
+            connExists = true;
+            let gotSquare = false;
+            // game already started, calculate next move
+            switch (msg.type) {
+              case "playAgain":
+                // send blank board state
+                console.log("received playagain from same socket");
+                g.boardState = blankBoardState(4, 4);
+                break;
+              case "v":
+                // update board state, send move to other client
+                if (validate(g.boardState, msg, "p1")) {
+                  gotSquare = applyMove(g.boardState, msg, 1);
+                }
+                break;
+              case "h":
+                // update board state, send move to other client
+                if (validate(g.boardState, msg, "p1")) {
+                  gotSquare = applyMove(g.boardState, msg, 1);
+                }
+                break;
+            }
+
+            if (!gotSquare && g.boardState.state == "p1") {
+              g.boardState.state = "p2";
+            }
+            socket.send(JSON.stringify(g.boardState));
+            if (g.boardState.state == "over") return;
+
+            if (!gotSquare) {
+              let p2 = g.players[1];
+              if (p2.type === "ai") {
+                try {
+                  do {
+                    let ai: AIPlayer = p2.conn;
+                    let response = await ai.getMove(g.boardState);
+                    let result: MoveMessage = JSON.parse(response);
+                    console.log("bot", result);
+                    gotSquare = applyMove(g.boardState, result, 2);
+                    socket.send(JSON.stringify(g.boardState));
+                    if ((g.boardState.state as string) == "over") break;
+                  } while (gotSquare);
+                } catch (e) {
+                  console.log("GOT ERROR", e);
+                }
+              }
+
+              if (g.boardState.state == "p2") {
+                g.boardState.state = "p1";
+              }
+              socket.send(JSON.stringify(g.boardState));
+            }
+            return;
+          }
+        } catch (e) {
+          console.log("got exception:", e);
+        }
+      });
+
+      if (msg.type == "playAgain" && !connExists) {
+        let ai: AIPlayer = new AIPlayer();
+        ai.aiMode = AIMode.RANDOM;
+        let game: Game = {
+          players: [
+            {
+              type: "player",
+              conn: socket,
+            },
+            {
+              type: "ai",
+              conn: ai,
+            },
+          ],
+          boardState: blankBoardState(4, 4),
+        };
+        games.push(game);
+        socket.send(JSON.stringify(blankBoardState(4, 4)));
+        return;
+      }
+    } catch (e) {
+      console.log("got exception:", e);
     }
   });
 });
