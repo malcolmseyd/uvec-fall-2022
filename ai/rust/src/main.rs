@@ -22,7 +22,6 @@ async fn test() -> impl Responder {
 
 #[post("/move")]
 async fn next_move(req_body: web::Json<MoveRequest>) -> impl Responder {
-    println!("{:#?}", req_body);
     let score = state::State::start_minimax(req_body.clone().hline, req_body.into_inner().vline);
     let response = MoveResponse {
         r#type: match score.vertical {
@@ -37,7 +36,7 @@ async fn next_move(req_body: web::Json<MoveRequest>) -> impl Responder {
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     HttpServer::new(|| App::new().service(next_move).service(test))
-        .bind(("127.0.0.1", 8080))?
+        .bind(("0.0.0.0", 3002))?
         .run()
         .await
 }
