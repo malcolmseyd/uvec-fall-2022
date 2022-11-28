@@ -2,6 +2,10 @@ import { type } from "os";
 import { useEffect, useState } from "react";
 import getConfig from "next/config";
 
+function getRandomInt(max: number) {
+  return Math.floor(Math.random() * max);
+}
+
 const { serverRuntimeConfig, publicRuntimeConfig } = getConfig();
 const API_URL = publicRuntimeConfig.API_URL;
 
@@ -171,7 +175,7 @@ export default function Home() {
       console.log("connected!");
       ws.send(JSON.stringify({ 
         type: "playAgain",
-        size: [3, 3],
+        size: [getRandomInt(2) + 3, getRandomInt(2) + 3],
       }));
       // ws.send(JSON.stringify({ type: "testRandom" }));
     });
