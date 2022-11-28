@@ -1,8 +1,10 @@
 import AIMode from "./ai-mode";
 import BoardState from "./board-state";
+import process from "process";
 const modeToUrl: Record<any, any> = {
-  random: "https://mnthomson.gh.srv.us/move",
+  random: process.env["AI_URL"] + "/move",
 };
+
 
 class AIPlayer {
   aiMode: AIMode;
