@@ -102,8 +102,17 @@ function Cell({ col, row, vline, hline, ws, claimed }: CellProps) {
 }
 
 type EvalBarProps = State;
-function EvalBar(props: GridProps) {
-  return <div className="eval"></div>;
+function EvalBar(props: EvalBarProps) {
+  const N = props.hline.length;
+  const numPoints = (N-1) * (N-1);
+  const h = (props.eval + numPoints) / (2 * numPoints) * 100;
+  return <div className="eval">
+    <div 
+    className="eval-cover" 
+    style={{
+      height: h.toString() + "%",
+    }}></div>
+  </div>;
 }
 
 type GridProps = State;
@@ -136,7 +145,7 @@ type GameState = {
   claimed: number[][];
   state: "unstarted" | "p1" | "p2" | "over";
   error?: string;
-  eval?: number;
+  eval: number;
 }
 
 type State = GameState & {
@@ -167,6 +176,7 @@ export default function Home() {
   const [redScore, setRedScore] = useState<number>(0);
   const [blueScore, setBlueScore] = useState<number>(0);
   const [message, setMessage] = useState<string>("");
+
   useEffect(() => {
     const url = `wss://${API_URL}/connect`
     const ws = new WebSocket(url);
@@ -176,12 +186,16 @@ export default function Home() {
       ws.send(JSON.stringify({ 
         type: "playAgain",
         size: [getRandomInt(2) + 3, getRandomInt(2) + 3],
+        // size: [3, 3],
       }));
       // ws.send(JSON.stringify({ type: "testRandom" }));
     });
     ws.addEventListener("message", (e) => {
       console.log(e.data);
       const newState: State = JSON.parse(e.data);
+      // const N = newState.hline.length - 1;
+      // const maxPoints = N * N;
+      // newState.eval = getRandomInt(2 * maxPoints) - maxPoints;
       setState({...newState, ws});
       let newRedScore = 0;
       let newBlueScore = 0;
@@ -213,18 +227,22 @@ export default function Home() {
   return (
     <div className="body">
       <h1>Dots and Boxes</h1>
-      {state == undefined ? <p>Connecting...</p> 
-      : <>
-        <EvalBar {...state} /> 
-        <Grid {...state} />
-        {state.state !== 'over' ? 
-        <div className="score">
-          Red: {redScore} <br />
-          Blue: {blueScore}
-        </div> :
-        <>{message}</>
-        }
-      </>
+      {state == undefined ? 
+        <p>Connecting...</p> 
+      : 
+        <div className="container">
+          <div className="game">
+          <EvalBar {...state} /> 
+          <Grid {...state} />
+          </div>
+          {state.state !== 'over' ? 
+          <div className="score">
+            Red: {redScore} <br />
+            Blue: {blueScore}
+          </div> :
+          <>{message}</>
+          }
+        </div>
       }
     </div>
   );
