@@ -3,8 +3,8 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   publicRuntimeConfig: {
-    API_URL: "malcolmseyd-2.gl.srv.us",
-  }
-}
+    API_URL: "badapi.mnt.dev",
+  },
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;

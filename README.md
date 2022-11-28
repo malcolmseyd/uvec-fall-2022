@@ -2,11 +2,19 @@
 
 ## Installation
 
-TODO max
+The only requirement is `docker`. Find your specific operating systems installation [here](https://docs.docker.com/engine/install/)
+
+### Quickstart
+
+```bash
+git clone https://github.com/malcolmseyd/uvec-fall-2022.git
+cd uvec-fall-2022
+docker compose up -d
+```
 
 ## Design Decisions / Division of Labour
 
-We chose a microservice architecture because it offered us the flexibility of independently deploying our software. We were able to split into frontend, backend, and AI service teams. This really assisted with testing, as we could all tunnel our dev machines out and test in real time, providing a blazing fast 🚀 🚀 🚀 🚀 🚀 🚀  feedback loop.
+We chose a microservice architecture because it offered us the flexibility of independently deploying our software. We were able to split into frontend, backend, and AI service teams. This really assisted with testing, as we could all tunnel our dev machines out and test in real time, providing a blazing fast 🚀 🚀 🚀 🚀 🚀 🚀 feedback loop.
 
 Additionally, it allows a plug-and-play dev experience with algorithms, where new algorithms can (in theory) be written and enabled on runtime.
 
@@ -18,7 +26,7 @@ The B.a.D. program uses a minimax algorithm with alpha-beta pruning to solve the
 
 We also wrote a random algorithm in Python. It was only used for testing and not in prod. It simply picked a random line.
 
-## Libraries 
+## Libraries
 
 For our Typescript backend, we used Express, and our frontend used NextJS. We chose not to serve the entire project from NextJS because of the aforementioned microservice descision. We were able to edit and push code independently without risking merge conflicts. Also the clean separation of frontend and backend is nice.
 
