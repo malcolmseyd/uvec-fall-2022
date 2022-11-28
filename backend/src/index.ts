@@ -5,7 +5,6 @@ import { Message, MoveMessage, PlayAgainMessage } from "./message";
 import AIMode from "./ai-mode";
 import BoardState from "./board-state";
 import AIPlayer from "./ai-player";
-import { triggerAsyncId } from "async_hooks";
 const app = express();
 const port = 3001;
 function blank(x: number, y: number) {
@@ -188,7 +187,8 @@ wsServer.on("connection", (socket) => {
               case "playAgain":
                 // send blank board state
                 console.log("received playagain from same socket");
-                g.boardState = blankBoardState(4, 4);
+                const [x,y] = msg.size;
+                g.boardState = blankBoardState(x, y);
                 break;
               case "v":
                 // update board state, send move to other client
@@ -243,6 +243,7 @@ wsServer.on("connection", (socket) => {
       if (msg.type == "playAgain" && !connExists) {
         let ai: AIPlayer = new AIPlayer();
         ai.aiMode = AIMode.RANDOM;
+        const [x,y] = msg.size;
         let game: Game = {
           players: [
             {
@@ -254,10 +255,10 @@ wsServer.on("connection", (socket) => {
               conn: ai,
             },
           ],
-          boardState: blankBoardState(4, 4),
+          boardState: blankBoardState(x, y),
         };
         games.push(game);
-        socket.send(JSON.stringify(blankBoardState(4, 4)));
+        socket.send(JSON.stringify(blankBoardState(x, y)));
         return;
       }
     } catch (e) {
