@@ -14,6 +14,8 @@ We chose TypeScript for our frontend and backend since JSON provides a nice way 
 
 We chose Rust for the AI beacause it's blazing fast, 🚀 🚀 🚀 🚀. This allows our algorithm to have a very fast runtime simply by choice of programming language. We chose Rust over other performant languages because it provides the most safety on compile time, ensuring high reliability and performance.
 
+The B.a.D. program uses a minimax algorithm with alpha-beta pruning to solve the game. It calculates all moves up to a specified depth, except for when a branch is dominated by the opponent’s decisions due to the alpha-beta optimization. The complexity is factorial based on the number of possible moves and the recursion depth. For example, if there are 8 possible moves and the algorithm calculates to a depth of 3, the complexity is 8*7*6. So, there is a constant value that can be found for any hardware to give the maximum possible depth within a reasonable time. We didn’t have time to implement that functionality in the code, so for now the maximum depth is set to 9. This provides good processing times with standard boards up to about size 6 (depending on the hardware), but may take a long time for larger boards. Nonetheless, calculating all possible moves up to 9 makes it stronger than most human players.
+
 ## Libraries 
 
 For our Typescript backend, we used Express, and our frontend used NextJS. We chose not to serve the entire project from NextJS because of the aforementioned microservice descision. We were able to edit and push code independently without risking merge conflicts. Also the clean separation of frontend and backend is nice.
