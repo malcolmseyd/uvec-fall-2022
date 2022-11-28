@@ -5,6 +5,8 @@
 table {
   border-spacing: 0;
   border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .body {
@@ -66,4 +68,12 @@ table {
   border-radius: 50%;
   width: 20px;
   height: 20px;
+}
+
+.eval {
+  background-color: white;
+  position: absolute;
+  width: 20px;
+  height: 100px;
+  margin-right: 10px;
 }
