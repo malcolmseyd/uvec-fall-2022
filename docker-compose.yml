@@ -1,0 +1,37 @@
+version: '3'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      NEXT_PUBLIC_API_URL: https://badapi.mnt.dev
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      AI_URL: http://ai-rust:3002
+    ports:
+      - "3001:3001"
+    depends_on: [ ai-rust, ai-random ]
+
+  ai-rust:
+    build:
+      context: ./ai/rust
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3002"
+
+  ai-random:
+    build:
+      context: ./ai/random
+      dockerfile: Dockerfile
+    ports:
+      - "3003:3003"
