@@ -17,6 +17,7 @@ function blankBoardState(x: number, y: number): BoardState {
     hline: blank(y, x - 1),
     claimed: blank(y - 1, x - 1),
     state: "p1",
+    eval: 0,
   };
 }
 
@@ -55,6 +56,10 @@ function applyMove(
 ): boolean {
   let gotSquare = false;
   const [y, x] = move.location;
+
+  if (move?.eval) {
+    boardState.eval += move.eval;
+  }
 
   let [left, right, upper, lower] = [0, 0, 0, 0];
   switch (move.type) {
@@ -187,7 +192,7 @@ wsServer.on("connection", (socket) => {
               case "playAgain":
                 // send blank board state
                 console.log("received playagain from same socket");
-                const [x,y] = msg.size;
+                const [x, y] = msg.size;
                 g.boardState = blankBoardState(x, y);
                 break;
               case "v":
@@ -243,7 +248,7 @@ wsServer.on("connection", (socket) => {
       if (msg.type == "playAgain" && !connExists) {
         let ai: AIPlayer = new AIPlayer();
         ai.aiMode = AIMode.RANDOM;
-        const [x,y] = msg.size;
+        const [x, y] = msg.size;
         let game: Game = {
           players: [
             {

@@ -13,6 +13,7 @@ struct MoveRequest {
 struct MoveResponse {
     r#type: String,
     location: [usize; 2],
+    eval: i32
 }
 
 #[get("/")]
@@ -29,6 +30,7 @@ async fn next_move(req_body: web::Json<MoveRequest>) -> impl Responder {
             false => String::from("h"),
         },
         location: [score.row, score.column],
+        eval: score.value
     };
     HttpResponse::Ok().json(response)
 }
